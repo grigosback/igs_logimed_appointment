@@ -3,10 +3,11 @@ import requests
 import json
 import urllib3
 import time
+import telepot
 from datetime import datetime
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# %%
+# %% Class to print in colors
 
 
 class bcolors:
@@ -21,7 +22,7 @@ class bcolors:
     UNDERLINE = '\033[4m'
 
 
-# %%
+# %% Definitions
 url = "https://igs.backend2.logimed.com.ar/logimedws/turnoscalendario?obraSocial=21&plan=1&sucursal=1&especialidad=6&prestacion=420101&profesional=606"
 
 payload = {}
@@ -29,26 +30,30 @@ headers = {
     'Token': 'Test123'
 }
 
-interval = 60  # in seconds
-turno_mas_proximo = 20220901
+check_period = 60  # in seconds
+max_date = 20220931  # the script will check for dates closer than this
+
+bot = telepot.Bot('5448057728:AAEEeDVEGpaYvJRSfl9p4RrTKLHbqy9svbs')
+chat_id = 670220713
 
 # %%
 while(1):
     response = requests.request(
         "GET", url, headers=headers, data=payload, verify=False)
-    turnos = json.loads(response.text)
+    appointments = json.loads(response.text)
 
-    turnos_fecha = []
-    for turno in turnos["calendario"]:
-        turnos_fecha.append(int(turno["fecha"]))
+    appointments_dates = []
+    for appointment in appointments["calendario"]:
+        appointments_dates.append(int(appointment["fecha"]))
 
-    if min(turnos_fecha) < turno_mas_proximo:
-        print("{}{}\t Próximo turno: {}{}".format(bcolors.OKGREEN,
-              datetime.now(), turnos_fecha[0], bcolors.ENDC))
+    if min(appointments_dates) < max_date:
+        print("{}{}\t Next available appointment: {}{}".format(bcolors.OKGREEN,
+              datetime.now(), appointments_dates[0], bcolors.ENDC))
+        bot.sendMessage(chat_id, "{}\t Next available appointment: {}".format(
+            datetime.now(), appointments_dates[0]))
         break
     else:
-        print("{}{}\t Próximo turno: {}{}".format(bcolors.FAIL,
-              datetime.now(), turnos_fecha[0], bcolors.ENDC))
-    time.sleep(interval)
-
+        print("{}{}\t Next available appointment: {}{}".format(bcolors.FAIL,
+              datetime.now(), appointments_dates[0], bcolors.ENDC))
+    time.sleep(check_period)
 # %%
